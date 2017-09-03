@@ -1628,10 +1628,10 @@ UniValue reconsiderblock(const Config &config, const JSONRPCRequest &request) {
     return NullUniValue;
 }
 
-static void RpcGetTx(const uint256& hash, CTransactionRef& tx_out)
+static void RpcGetTx(const Config &config, const uint256& hash, CTransactionRef& tx_out)
 {
     uint256 hashBlock;
-    if (!GetTransaction(GetConfig(), hash, tx_out, hashBlock, true)) {
+    if (!GetTransaction(config, hash, tx_out, hashBlock, true)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string(fTxIndex ? "No such mempool or blockchain transaction"
           : "No such mempool transaction. Use -txindex to enable blockchain transaction queries"));
     }
@@ -1658,7 +1658,7 @@ static T CalculateTruncatedMedian(std::vector<T>& scores)
 // outpoint (needed for the utxo index) + nHeight + fCoinBase
 static const size_t PER_UTXO_OVERHEAD = sizeof(COutPoint) + sizeof(uint32_t) + sizeof(bool);
 
-static void UpdateBlockStats(const CBlockIndex* pindex, std::set<std::string>& stats, std::map<std::string, UniValue>& map_stats)
+static void UpdateBlockStats(const Config &config, const CBlockIndex* pindex, std::set<std::string>& stats, std::map<std::string, UniValue>& map_stats)
 {
     int64_t inputs = 0;
     int64_t outputs = 0;
@@ -1697,7 +1697,7 @@ static void UpdateBlockStats(const CBlockIndex* pindex, std::set<std::string>& s
         CAmount tx_total_in = 0;
         for (const CTxIn& in : tx->vin) {
             CTransactionRef tx_in;
-            RpcGetTx(in.prevout.hash, tx_in);
+            RpcGetTx(config, in.prevout.hash, tx_in);
             CTxOut prevoutput = tx_in->vout[in.prevout.n];
 
             tx_total_in += prevoutput.nValue;
@@ -1765,7 +1765,7 @@ static void UpdateBlockStats(const CBlockIndex* pindex, std::set<std::string>& s
     }
 }
 
-UniValue getblockstats(const JSONRPCRequest& request)
+UniValue getblockstats(const Config &config, const JSONRPCRequest& request)
 {
     std::set<std::string> valid_stats = {
         "height",
@@ -1875,7 +1875,7 @@ UniValue getblockstats(const JSONRPCRequest& request)
     }
 
     for (int i = start; i <= end; ++i) {
-        UpdateBlockStats(chainActive[i], stats, map_stats);
+        UpdateBlockStats(config, chainActive[i], stats, map_stats);
     }
 
     UniValue ret(UniValue::VOBJ);
@@ -1909,7 +1909,7 @@ static const CRPCCommand commands[] = {
     { "blockchain",         "pruneblockchain",        pruneblockchain,        true,  {"height"} },
     { "blockchain",         "verifychain",            verifychain,            true,  {"checklevel","nblocks"} },
     { "blockchain",         "preciousblock",          preciousblock,          true,  {"blockhash"} },
-    { "blockchain",         "getblockstats",          getblockstats,          true,  {"start", "end", "stats"} },
+    { "blockchain",         "getblockstats",          getblockstats,          true,  {"start","end","stats"} },
 
     /* Not shown in help */
     { "hidden",             "invalidateblock",        invalidateblock,        true,  {"blockhash"} },
