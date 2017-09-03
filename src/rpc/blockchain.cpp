@@ -1628,6 +1628,22 @@ UniValue reconsiderblock(const Config &config, const JSONRPCRequest &request) {
     return NullUniValue;
 }
 
+static void ReadBlockCheckPruned(CBlock& block, const CBlockIndex* pblockindex)
+{
+    if (fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0) {
+        throw JSONRPCError(RPC_MISC_ERROR, "Block not available (pruned data)");
+    }
+
+    if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+        // Block not found on disk. This could be because we have the block
+        // header in our index but don't have the block (for example if a
+        // non-whitelisted node sends us an unrequested long chain of valid
+        // blocks, we add the headers to our index, but don't accept the
+        // block).
+        throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
+    }
+}
+
 static void RpcGetTx(const Config &config, const uint256& hash, CTransactionRef& tx_out)
 {
     uint256 hashBlock;
@@ -1675,8 +1691,7 @@ static void UpdateBlockStats(const Config &config, const CBlockIndex* pindex, st
 
     CBlock block;
 
-    // assume it's not pruned for now
-    // ReadBlockCheckPruned(block, pindex);
+    ReadBlockCheckPruned(block, pindex);
 
     for (const auto& tx : block.vtx) {
         outputs += tx->vout.size();
