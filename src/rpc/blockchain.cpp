@@ -1684,10 +1684,10 @@ static void UpdateBlockStats(const Config &config, const CBlockIndex* pindex, st
     CAmount totalfee = 0;
     CAmount minfee = MAX_MONEY;
     CAmount maxfee = 0;
-    CAmount minfeerate_old = MAX_MONEY;
-    CAmount maxfeerate_old = 0;
+    CAmount minfeerate = MAX_MONEY;
+    CAmount maxfeerate = 0;
     std::vector<CAmount> fee_array;
-    std::vector<CAmount> feerate_old_array;
+    std::vector<CAmount> feerate_array;
 
     CBlock block;
 
@@ -1725,11 +1725,11 @@ static void UpdateBlockStats(const Config &config, const CBlockIndex* pindex, st
         minfee = std::min(minfee, txfee);
         maxfee = std::max(maxfee, txfee);
 
-        CAmount feerate_old = CFeeRate(txfee, tx_size).GetTruncatedFee(1);
-        feerate_old_array.push_back(feerate_old);
+        CAmount feerate = CFeeRate(txfee, tx_size).GetTruncatedFee(1);
+        feerate_array.push_back(feerate);
 
-        minfeerate_old = std::min(minfeerate_old, feerate_old);
-        maxfeerate_old = std::max(maxfeerate_old, feerate_old);
+        minfeerate = std::min(minfeerate, feerate);
+        maxfeerate = std::max(maxfeerate, feerate);
     }
 
     for (const std::string& stat : stats) {
@@ -1768,13 +1768,13 @@ static void UpdateBlockStats(const Config &config, const CBlockIndex* pindex, st
             map_stats[stat].push_back(CalculateTruncatedMedian(fee_array));
         } else if (stat == "avgfee") {
             map_stats[stat].push_back((block.vtx.size() > 1) ? totalfee / (block.vtx.size() - 1) : 0);
-        } else if (stat == "minfeerate_old") {
-            map_stats[stat].push_back((minfeerate_old == MAX_MONEY) ? 0 : minfeerate_old);
-        } else if (stat == "maxfeerate_old") {
-            map_stats[stat].push_back(maxfeerate_old);
-        } else if (stat == "medianfeerate_old") {
-            map_stats[stat].push_back(CalculateTruncatedMedian(feerate_old_array));
-        } else if (stat == "avgfeerate_old") {
+        } else if (stat == "minfeerate") {
+            map_stats[stat].push_back((minfeerate == MAX_MONEY) ? 0 : minfeerate);
+        } else if (stat == "maxfeerate") {
+            map_stats[stat].push_back(maxfeerate);
+        } else if (stat == "medianfeerate") {
+            map_stats[stat].push_back(CalculateTruncatedMedian(feerate_array));
+        } else if (stat == "avgfeerate") {
             map_stats[stat].push_back(CFeeRate(totalfee, total_size).GetTruncatedFee(1));
         }
     }
@@ -1800,10 +1800,10 @@ UniValue getblockstats(const Config &config, const JSONRPCRequest& request)
         "maxfee",
         "medianfee",
         "avgfee",
-        "minfeerate_old",
-        "maxfeerate_old",
-        "medianfeerate_old",
-        "avgfeerate_old",
+        "minfeerate",
+        "maxfeerate",
+        "medianfeerate",
+        "avgfeerate",
     };
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
         throw std::runtime_error(
@@ -1834,10 +1834,10 @@ UniValue getblockstats(const Config &config, const JSONRPCRequest& request)
             "  \"maxfee\": [],             (array) Maximum fee in the block.\n"
             "  \"medianfee\": [],          (array) Truncated median fee in the block.\n"
             "  \"avgfee\": [],             (array) Average fee in the block.\n"
-            "  \"minfeerate_old\": [],     (array) Minimum feerate (in satoshis per byte [excluding segwits]).\n"
-            "  \"maxfeerate_old\": [],     (array) Maximum feerate (in satoshis per byte [excluding segwits]).\n"
-            "  \"medianfeerate_old\": [],  (array) Truncated median feerate (in satoshis per byte [excluding segwits]).\n"
-            "  \"avgfeerate_old\": [],     (array) Average feerate (in satoshis per byte [excluding segwits]).\n"
+            "  \"minfeerate\": [],     (array) Minimum feerate (in satoshis per byte [excluding segwits]).\n"
+            "  \"maxfeerate\": [],     (array) Maximum feerate (in satoshis per byte [excluding segwits]).\n"
+            "  \"medianfeerate\": [],  (array) Truncated median feerate (in satoshis per byte [excluding segwits]).\n"
+            "  \"avgfeerate\": [],     (array) Average feerate (in satoshis per byte [excluding segwits]).\n"
             "}\n"
             "\nExamples:\n"
             + HelpExampleCli("getblockstats", "1000 1000 \"minfeerate,avgfeerate\"")
